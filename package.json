@@ -21,6 +21,9 @@
     "twilio": "^4.22.0"
   },
   "devDependencies": {
+    "@types/node": "^24.3.1",
+    "@types/react": "^19.1.12",
+    "@types/react-dom": "^19.1.9",
     "autoprefixer": "^10.4.20",
     "postcss": "^8.4.41",
     "prisma": "^5.22.0",
