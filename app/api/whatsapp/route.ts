@@ -1,3 +1,4 @@
+// app/api/whatsapp/route.ts
 import { NextResponse } from 'next/server'
 import { prisma } from '@/lib/prisma'
 import { supabaseServer } from '@/lib/supabase'
@@ -38,7 +39,7 @@ export async function POST(req: Request) {
     const fromPhone = from.replace(/^whatsapp:/i, '').replace(/\s+/g, '')
     if (!fromPhone) return NextResponse.json({ error: 'Missing From phone' }, { status: 400 })
 
-    // Liste des médias (url + content-type)
+    // Récupère les médias éventuels
     const medias: { url: string; contentType: string }[] = []
     for (let i = 0; i < numMedia; i++) {
       const u = String(form.get(`MediaUrl${i}`) || '')
@@ -46,27 +47,41 @@ export async function POST(req: Request) {
       if (u) medias.push({ url: u, contentType: c })
     }
 
-    // 1) Trouver ticket OPEN récent pour ce numéro, sinon créer
+    // 1) Trouver un ticket OPEN récent pour ce numéro + une propriété par défaut
     let ticket = await prisma.ticket.findFirst({
       where: { status: 'OPEN', messages: { some: { phone: fromPhone } } },
       orderBy: { createdAt: 'desc' },
     })
 
-    if (!ticket) {
-      ticket = await prisma.ticket.create({
-        data: { status: 'OPEN', type: 'MSG' },
+    // IMPORTANT : garantir une Property pour satisfaire le schéma Prisma
+    let prop = await prisma.property.findFirst()
+    if (!prop) {
+      prop = await prisma.property.create({
+        data: { slug: 'demo-apartment', name: 'Demo apartment' },
       })
-      await prisma.auditLog.create({ data: { action: 'TICKET_CREATED', entity: 'Ticket', entityId: ticket.id } })
     }
 
-    // 2) Enregistrer le message texte (si présent)
+    if (!ticket) {
+      ticket = await prisma.ticket.create({
+        data: {
+          propertyId: prop.id,   // <- clé manquante qui cassait le build
+          status: 'OPEN',
+          type: 'MSG',
+        },
+      })
+      await prisma.auditLog.create({
+        data: { action: 'TICKET_CREATED', entity: 'Ticket', entityId: ticket.id }
+      })
+    }
+
+    // 2) Enregistrer le message texte
     if (body) {
       await prisma.message.create({
         data: { ticketId: ticket.id, from: 'phone', phone: fromPhone, body },
       })
     }
 
-    // 3) Téléchargement médias (supporte URL Twilio avec auth et URL publiques sans auth)
+    // 3) Upload des médias (Twilio ou URL publiques)
     if (medias.length > 0) {
       const sid = process.env.TWILIO_ACCOUNT_SID || ''
       const token = process.env.TWILIO_AUTH_TOKEN || ''
@@ -119,7 +134,7 @@ export async function POST(req: Request) {
               from: 'phone',
               phone: fromPhone,
               body: '',
-              // @ts-ignore – champ souple V1
+              // champ toléré en V1
               mediaUrl,
             } as any,
           })
