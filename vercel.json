@@ -1,13 +1,5 @@
 {
   "crons": [
-    { "path": "/api/reviews/trigger", "schedule": "0 6 * * *" },
-    { "path": "/api/reports/daily", "schedule": "5 6 * * *" },
-    { "path": "/api/tasks/housekeeping-reminder", "schedule": "0 17 * * *" }
-  ]
-}
-{
-  "crons": [
-    { "path": "/api/reports/daily", "schedule": "0 6 * * *" },
     { "path": "/api/reviews/cron", "schedule": "0 6 * * *" },
     { "path": "/api/housekeeping/notify", "schedule": "0 18 * * *" }
   ]
