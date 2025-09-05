@@ -28,5 +28,28 @@ Sentry.init({
   // Setting this option to true will print useful information to the console while you're setting up Sentry.
   debug: false,
 });
+// instrumentation-client.ts
+import * as Sentry from '@sentry/nextjs';
 
+// Ce fichier est chargé côté navigateur.
+// Ne PAS utiliser "enableLogs" (option inexistante dans ce SDK).
+// On active Replay & Tracing via les intégrations officielles.
+
+Sentry.init({
+  dsn: process.env.SENTRY_DSN,
+  environment: process.env.SENTRY_ENVIRONMENT || 'production',
+
+  // Performance
+  tracesSampleRate: 1.0,
+
+  // Session Replay (échantillonnage raisonnable)
+  replaysSessionSampleRate: 0.1,
+  replaysOnErrorSampleRate: 1.0,
+
+  // Intégrations conseillées côté client
+  integrations: [
+    Sentry.browserTracingIntegration(),
+    Sentry.replayIntegration(),
+  ],
+});
 export const onRouterTransitionStart = Sentry.captureRouterTransitionStart;
