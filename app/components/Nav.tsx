@@ -1,62 +1,38 @@
-'use client'
-import Link from 'next/link'
-import { usePathname, useRouter } from 'next/navigation'
-import { useState } from 'react'
+// app/components/Nav.tsx
+"use client"
 
-function NavLink({ href, children }: { href: string; children: React.ReactNode }) {
-  const pathname = usePathname()
-  const isActive =
-    href === '/'
-      ? pathname === '/'
-      : pathname === href || pathname.startsWith(href + '/')
+import Link from "next/link"
+import { usePathname } from "next/navigation"
 
-  return (
-    <Link
-      href={href}
-      className={
-        'px-3 py-1 rounded transition ' +
-        (isActive
-          ? 'bg-white/10 text-white'
-          : 'opacity-80 hover:opacity-100')
-      }
-    >
-      {children}
-    </Link>
-  )
-}
+const links = [
+  { href: "/", label: "Dashboard" },
+  { href: "/tickets", label: "Tickets" },
+  { href: "/reviews", label: "Avis" },
+  { href: "/planning", label: "Planning" },
+]
 
 export default function Nav() {
-  const router = useRouter()
-  const [loading, setLoading] = useState(false)
-
-  async function logout() {
-    try {
-      setLoading(true)
-      await fetch('/api/auth/logout', { method: 'POST' })
-      router.replace('/login')
-      router.refresh()
-    } finally {
-      setLoading(false)
-    }
-  }
+  const pathname = usePathname()
 
   return (
-    <div className="flex items-center gap-3">
-      <nav className="flex items-center gap-2 text-sm">
-        <NavLink href="/">Dashboard</NavLink>
-        <NavLink href="/tickets">Tickets</NavLink>
-        <NavLink href="/planning">Planning</NavLink>
-        <NavLink href="/reviews">Reviews</NavLink>
-      </nav>
-
+    <nav className="flex gap-4">
+      {links.map(({ href, label }) => (
+        <Link
+          key={href}
+          href={href}
+          className={`hover:underline ${
+            pathname === href ? "text-blue-400 font-semibold" : ""
+          }`}
+        >
+          {label}
+        </Link>
+      ))}
       <button
-        onClick={logout}
-        className="px-2.5 py-1 rounded text-xs border border-white/20 hover:border-white/40 opacity-80 hover:opacity-100"
-        disabled={loading}
-        title="Se déconnecter"
+        onClick={() => alert("Déconnexion")}
+        className="ml-4 text-red-400 hover:underline"
       >
-        {loading ? '…' : 'Logout'}
+        Logout
       </button>
-    </div>
+    </nav>
   )
 }

@@ -1,6 +1,6 @@
 // app/layout.tsx
-import type { Metadata } from 'next'
 import './globals.css'
+import type { Metadata } from 'next'
 import Link from 'next/link'
 import Nav from './components/Nav'
 
@@ -8,6 +8,11 @@ export const metadata: Metadata = {
   title: 'Concierge CRM',
   description: 'CRM concierge augmenté',
 }
+
+// Désactive le prerender pour toute l’app
+export const dynamic = 'force-dynamic'
+export const fetchCache = 'force-no-store'
+export const revalidate = 0
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {
   return (

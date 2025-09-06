@@ -7,18 +7,19 @@ const PUBLIC_PATHS = [
   '/login',
   '/api/auth/login',
 
-  // Healthcheck
-  '/api/health',
-
-  // Webhook & reviews publics
+  // Webhooks & formulaires publics
   '/api/whatsapp',
   '/api/reviews/submit',
 
-  // Crons (Vercel)
+  // Stats/health publics pour le dashboard SSR
+  '/api/health',
+  '/api/stats/summary',
+
+  // Crons (si besoin depuis Vercel)
   '/api/reviews/cron',
   '/api/housekeeping/notify',
 
-  // Assets Next
+  // Assets
   '/_next',
   '/favicon.ico',
 ]

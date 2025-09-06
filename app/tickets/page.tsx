@@ -1,4 +1,6 @@
-// app/tickets/page.tsx
+export const dynamic = 'force-dynamic';
+export const fetchCache = 'force-no-store';
+export const revalidate = 0;// app/tickets/page.tsx
 import { prisma } from '@/lib/prisma'
 import Link from 'next/link'
 
