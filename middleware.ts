@@ -1,43 +1,38 @@
+// middleware.ts
 import { NextResponse } from 'next/server'
 import type { NextRequest } from 'next/server'
 
-/**
- * Routes publiques (sans session) – V1 prod
- */
+// Routes publiques (sans session requise)
 const PUBLIC_PATHS = [
   '/login',
   '/api/auth/login',
 
-  // Santé
-  '/api/health',
-
-  // Webhook & reviews publics
+  // Webhooks & crons
   '/api/whatsapp',
   '/api/reviews/submit',
-
-  // Crons/notifications
   '/api/reviews/cron',
   '/api/housekeeping/notify',
+  '/api/health',
 
-  // Assets Next
+  // Assets Next.js
   '/_next',
   '/favicon.ico',
 ]
 
+// Vérifie si le chemin demandé est public
 function isPublic(pathname: string) {
-  // on match exact OU prefix avec un slash pour éviter /api/whatsapp-x
-  return PUBLIC_PATHS.some(p =>
-    pathname === p || pathname.startsWith(p.endsWith('/') ? p : p + '/')
-  )
+  return PUBLIC_PATHS.some((p) => pathname === p || pathname.startsWith(p))
 }
 
 export function middleware(req: NextRequest) {
   const { pathname } = req.nextUrl
 
+  // Autoriser l’accès direct aux routes publiques
   if (isPublic(pathname)) {
     return NextResponse.next()
   }
 
+  // Vérifie la présence d’un cookie de session
   const cookie =
     req.cookies.get('admin_session_v2')?.value ||
     req.cookies.get('admin_session')?.value
@@ -51,7 +46,7 @@ export function middleware(req: NextRequest) {
   return NextResponse.next()
 }
 
+// Ignorer les fichiers statiques & images
 export const config = {
-  // on laisse passer les assets déjà exclus
-  matcher: ['/((?!api/preview|_next/static|_next/image|favicon.ico).*)'],
+  matcher: ['/((?!_next/static|_next/image|favicon.ico).*)'],
 }
