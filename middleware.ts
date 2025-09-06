@@ -2,37 +2,36 @@
 import { NextResponse } from 'next/server'
 import type { NextRequest } from 'next/server'
 
-// Routes publiques (sans session requise)
 const PUBLIC_PATHS = [
+  // Auth
   '/login',
   '/api/auth/login',
 
-  // Webhooks & crons
-  '/api/whatsapp',
-  '/api/reviews/submit',
-  '/api/reviews/cron',
-  '/api/housekeeping/notify',
+  // Healthcheck
   '/api/health',
 
-  // Assets Next.js
+  // Webhook & reviews publics
+  '/api/whatsapp',
+  '/api/reviews/submit',
+
+  // Crons (Vercel)
+  '/api/reviews/cron',
+  '/api/housekeeping/notify',
+
+  // Assets Next
   '/_next',
   '/favicon.ico',
 ]
 
-// Vérifie si le chemin demandé est public
-function isPublic(pathname: string) {
-  return PUBLIC_PATHS.some((p) => pathname === p || pathname.startsWith(p))
-}
-
 export function middleware(req: NextRequest) {
   const { pathname } = req.nextUrl
 
-  // Autoriser l’accès direct aux routes publiques
-  if (isPublic(pathname)) {
+  // Laisser passer si route publique (exacte ou préfixe)
+  if (PUBLIC_PATHS.some(p => pathname === p || pathname.startsWith(p))) {
     return NextResponse.next()
   }
 
-  // Vérifie la présence d’un cookie de session
+  // Cookie de session pour tout le reste
   const cookie =
     req.cookies.get('admin_session_v2')?.value ||
     req.cookies.get('admin_session')?.value
@@ -46,7 +45,6 @@ export function middleware(req: NextRequest) {
   return NextResponse.next()
 }
 
-// Ignorer les fichiers statiques & images
 export const config = {
   matcher: ['/((?!_next/static|_next/image|favicon.ico).*)'],
 }
