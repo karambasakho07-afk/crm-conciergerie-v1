@@ -1,10 +1,39 @@
 import { NextResponse } from 'next/server'
+import { PrismaClient } from '@prisma/client'
+
+export const runtime = 'nodejs'
 export const dynamic = 'force-dynamic'
+
+function mask(url?: string) {
+  if (!url) return ''
+  return url.replace(/(postgres(?:ql)?:\/\/[^:]+:)[^@]+/i, '$1******')
+}
+
 export async function GET() {
-  const red = (s?: string) => s ? s.replace(/(postgresql:\/\/[^:]+:)[^@]+/, '$1******') : null
-  return NextResponse.json({
-    DATABASE_URL: red(process.env.DATABASE_URL || null as any),
-    DIRECT_URL: red(process.env.DIRECT_URL || null as any),
-    rawPortHint: (process.env.DATABASE_URL || '').match(/:(\d+)\//)?.[1] || null
+  const dbUrl = process.env.DATABASE_URL || ''
+  const directUrl = process.env.DIRECT_URL || ''
+
+  // Prisma test avec override explicite de la datasource
+  const prisma = new PrismaClient({
+    datasources: { db: { url: dbUrl } },
   })
+
+  try {
+    const now = await prisma.$queryRawUnsafe<{ now: Date }[]>('select now()')
+    return NextResponse.json({
+      ok: true,
+      database_url: mask(dbUrl),
+      direct_url: mask(directUrl),
+      now: now?.[0]?.now ?? null,
+    })
+  } catch (e: any) {
+    return NextResponse.json({
+      ok: false,
+      database_url: mask(dbUrl),
+      direct_url: mask(directUrl),
+      error: e?.message || String(e),
+    }, { status: 500 })
+  } finally {
+    await prisma.$disconnect()
+  }
 }
