@@ -29,17 +29,14 @@ function extFromContentType(ct: string) {
 
 export async function POST(req: Request) {
   try {
-    // Twilio envoie application/x-www-form-urlencoded
     const form = await req.formData()
-
-    const from = String(form.get('From') || '')                // ex: whatsapp:+336...
+    const from = String(form.get('From') || '')
     const body = String(form.get('Body') || '').trim()
     const numMedia = parseInt(String(form.get('NumMedia') || '0'), 10) || 0
 
     const fromPhone = from.replace(/^whatsapp:/i, '').replace(/\s+/g, '')
     if (!fromPhone) return NextResponse.json({ error: 'Missing From phone' }, { status: 400 })
 
-    // Récupère les médias éventuels
     const medias: { url: string; contentType: string }[] = []
     for (let i = 0; i < numMedia; i++) {
       const u = String(form.get(`MediaUrl${i}`) || '')
@@ -47,13 +44,11 @@ export async function POST(req: Request) {
       if (u) medias.push({ url: u, contentType: c })
     }
 
-    // 1) Trouver un ticket OPEN récent pour ce numéro + une propriété par défaut
     let ticket = await prisma.ticket.findFirst({
       where: { status: 'OPEN', messages: { some: { phone: fromPhone } } },
       orderBy: { createdAt: 'desc' },
     })
 
-    // IMPORTANT : garantir une Property pour satisfaire le schéma Prisma
     let prop = await prisma.property.findFirst()
     if (!prop) {
       prop = await prisma.property.create({
@@ -64,7 +59,7 @@ export async function POST(req: Request) {
     if (!ticket) {
       ticket = await prisma.ticket.create({
         data: {
-          propertyId: prop.id,   // <- clé manquante qui cassait le build
+          propertyId: prop.id,
           status: 'OPEN',
           type: 'MSG',
         },
@@ -74,21 +69,18 @@ export async function POST(req: Request) {
       })
     }
 
-    // 2) Enregistrer le message texte
     if (body) {
       await prisma.message.create({
         data: { ticketId: ticket.id, from: 'phone', phone: fromPhone, body },
       })
     }
 
-    // 3) Upload des médias (Twilio ou URL publiques)
     if (medias.length > 0) {
       const sid = process.env.TWILIO_ACCOUNT_SID || ''
       const token = process.env.TWILIO_AUTH_TOKEN || ''
       if (!process.env.NEXT_PUBLIC_SUPABASE_URL || !process.env.SUPABASE_SERVICE_ROLE_KEY) {
         return NextResponse.json({ error: 'Missing Supabase env vars' }, { status: 500 })
       }
-
       const basicAuth = 'Basic ' + Buffer.from(`${sid}:${token}`).toString('base64')
 
       let idx = 0
@@ -134,13 +126,12 @@ export async function POST(req: Request) {
               from: 'phone',
               phone: fromPhone,
               body: '',
-              // champ toléré en V1
               mediaUrl,
             } as any,
           })
 
           idx++
-        } catch (err) {
+        } catch {
           await prisma.auditLog.create({
             data: { action: 'MEDIA_FETCH_EXCEPTION', entity: 'Ticket', entityId: ticket.id }
           })
