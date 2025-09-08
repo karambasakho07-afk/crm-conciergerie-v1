@@ -8,6 +8,138 @@ datasource db {
   directUrl = env("DIRECT_URL")
 }
 
+model User {
+  id            String     @id @default(cuid())
+  role          Role
+  name          String
+  email         String?    @unique
+  phone         String?    @unique
+  createdAt     DateTime   @default(now())
+  updatedAt     DateTime   @updatedAt
+  assignedTasks Task[]     @relation("TaskAssignee")
+  tickets       Ticket[]   @relation("TicketAssignee")
+  properties    Property[] @relation("PropertyAssignees")
+}
+
+model Property {
+  id           String     @id @default(cuid())
+  slug         String     @unique
+  name         String
+  address      String?
+  access_notes String?
+  tags         String[]   @default([])
+  ownerId      String?
+  createdAt    DateTime   @default(now())
+  updatedAt    DateTime   @updatedAt
+  incidents    Incident[]
+  reviews      Review[]
+  tasks        Task[]
+  tickets      Ticket[]
+  assignees    User[]     @relation("PropertyAssignees")
+
+  @@index([slug])
+}
+
+model Ticket {
+  id              String       @id @default(cuid())
+  propertyId      String
+  status          TicketStatus @default(OPEN)
+  type            TicketType   @default(MSG)
+  assigneeId      String?
+  createdAt       DateTime     @default(now())
+  updatedAt       DateTime     @updatedAt
+  firstResponseAt DateTime?
+  messages        Message[]
+  assignee        User?        @relation("TicketAssignee", fields: [assigneeId], references: [id])
+  property        Property     @relation(fields: [propertyId], references: [id])
+
+  @@index([propertyId, status])
+}
+
+model Message {
+  id        String   @id @default(cuid())
+  ticketId  String
+  from      MsgFrom
+  body      String
+  mediaUrl  String?
+  phone     String?
+  createdAt DateTime @default(now())
+  ticket    Ticket   @relation(fields: [ticketId], references: [id])
+
+  @@index([ticketId, createdAt])
+}
+
+model Task {
+  id         String     @id @default(cuid())
+  propertyId String
+  type       TaskType
+  dueAt      DateTime
+  assigneeId String?
+  status     TaskStatus @default(TODO)
+  createdAt  DateTime   @default(now())
+  updatedAt  DateTime   @updatedAt
+  hkCheck    HK_Check?
+  assignee   User?      @relation("TaskAssignee", fields: [assigneeId], references: [id])
+  property   Property   @relation(fields: [propertyId], references: [id])
+
+  @@index([propertyId, type, dueAt])
+}
+
+model HK_Check {
+  id        String   @id @default(cuid())
+  taskId    String   @unique
+  checklist Json
+  photos    Json
+  createdAt DateTime @default(now())
+  task      Task     @relation(fields: [taskId], references: [id])
+}
+
+model Incident {
+  id         String    @id @default(cuid())
+  propertyId String
+  severity   Int
+  sla_due    DateTime?
+  cost       Decimal?  @db.Decimal(10, 2)
+  vendor     String?
+  status     String    @default("OPEN")
+  createdAt  DateTime  @default(now())
+  updatedAt  DateTime  @updatedAt
+  property   Property  @relation(fields: [propertyId], references: [id])
+
+  @@index([propertyId, status])
+}
+
+model Review {
+  id         String   @id @default(cuid())
+  propertyId String
+  stayId     String?
+  score      Int
+  comment    String?
+  swot       Json?
+  createdAt  DateTime @default(now())
+  property   Property @relation(fields: [propertyId], references: [id])
+
+  @@index([propertyId, createdAt])
+}
+
+model Attachment {
+  id        String   @id @default(cuid())
+  entity    String
+  url       String
+  meta      Json?
+  createdAt DateTime @default(now())
+}
+
+model AuditLog {
+  id        String   @id @default(cuid())
+  actorId   String?
+  action    String
+  entity    String?
+  entityId  String?
+  ip        String?
+  createdAt DateTime @default(now())
+}
+
 enum Role {
   ADMIN
   CONCIERGE
@@ -44,145 +176,4 @@ enum MsgFrom {
   staff
   system
   phone
-}
-
-model User {
-  id        String   @id @default(cuid())
-  role      Role
-  name      String
-  email     String?  @unique
-  phone     String?  @unique
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
-
-  properties    Property[] @relation("PropertyAssignees")
-  assignedTasks Task[]     @relation("TaskAssignee")
-  tickets       Ticket[]   @relation("TicketAssignee")
-}
-
-model Property {
-  id           String   @id @default(cuid())
-  slug         String   @unique
-  name         String
-  address      String?
-  access_notes String?
-  tags         String[] @default([])
-  ownerId      String?
-  createdAt    DateTime @default(now())
-  updatedAt    DateTime @updatedAt
-
-  tickets   Ticket[]
-  tasks     Task[]
-  reviews   Review[]
-  incidents Incident[]
-
-  assignees User[] @relation("PropertyAssignees")
-
-  @@index([slug])
-}
-
-model Ticket {
-  id              String       @id @default(cuid())
-  propertyId      String
-  status          TicketStatus @default(OPEN)
-  type            TicketType   @default(MSG)
-  assigneeId      String?
-  createdAt       DateTime     @default(now())
-  updatedAt       DateTime     @updatedAt
-  firstResponseAt DateTime?
-
-  property Property  @relation(fields: [propertyId], references: [id])
-  assignee User?     @relation("TicketAssignee", fields: [assigneeId], references: [id])
-  messages Message[]
-
-  @@index([propertyId, status])
-}
-
-model Message {
-  id        String   @id @default(cuid())
-  ticketId  String
-  from      MsgFrom
-  body      String
-  mediaUrl  String? // URL publique Supabase pour les pièces jointes
-  phone     String?
-  createdAt DateTime @default(now())
-
-  ticket Ticket @relation(fields: [ticketId], references: [id])
-
-  @@index([ticketId, createdAt])
-}
-
-model Task {
-  id         String     @id @default(cuid())
-  propertyId String
-  type       TaskType
-  dueAt      DateTime
-  assigneeId String?
-  status     TaskStatus @default(TODO)
-  createdAt  DateTime   @default(now())
-  updatedAt  DateTime   @updatedAt
-
-  property Property  @relation(fields: [propertyId], references: [id])
-  assignee User?     @relation("TaskAssignee", fields: [assigneeId], references: [id])
-  hkCheck  HK_Check?
-
-  @@index([propertyId, type, dueAt])
-}
-
-model HK_Check {
-  id        String   @id @default(cuid())
-  taskId    String   @unique
-  checklist Json
-  photos    Json // [{ url, meta }]
-  createdAt DateTime @default(now())
-
-  task Task @relation(fields: [taskId], references: [id])
-}
-
-model Incident {
-  id         String    @id @default(cuid())
-  propertyId String
-  severity   Int
-  sla_due    DateTime?
-  cost       Decimal?  @db.Decimal(10, 2)
-  vendor     String?
-  status     String    @default("OPEN")
-  createdAt  DateTime  @default(now())
-  updatedAt  DateTime  @updatedAt
-
-  property Property @relation(fields: [propertyId], references: [id])
-
-  @@index([propertyId, status])
-}
-
-model Review {
-  id         String   @id @default(cuid())
-  propertyId String
-  stayId     String?
-  score      Int
-  comment    String?
-  swot       Json?
-  createdAt  DateTime @default(now())
-
-  property Property @relation(fields: [propertyId], references: [id])
-
-  @@index([propertyId, createdAt])
-}
-
-model Attachment {
-  id        String   @id @default(cuid())
-  entity    String
-  url       String
-  meta      Json?
-  createdAt DateTime @default(now())
-}
-
-model AuditLog {
-  id        String   @id @default(cuid())
-  actorId   String?
-  action    String
-  entity    String?
-  entityId  String?
-  ip        String?
-  createdAt DateTime @default(now())
 }
