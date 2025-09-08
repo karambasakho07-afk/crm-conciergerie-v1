@@ -12,12 +12,7 @@ function mask(url?: string) {
 export async function GET() {
   const dbUrl = process.env.DATABASE_URL || ''
   const directUrl = process.env.DIRECT_URL || ''
-
-  // Prisma test avec override explicite de la datasource
-  const prisma = new PrismaClient({
-    datasources: { db: { url: dbUrl } },
-  })
-
+  const prisma = new PrismaClient({ datasources: { db: { url: dbUrl } } })
   try {
     const now = await prisma.$queryRawUnsafe<{ now: Date }[]>('select now()')
     return NextResponse.json({
