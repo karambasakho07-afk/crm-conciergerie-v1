@@ -1,3 +1,4 @@
+export const runtime = 'nodejs'
 // app/page.tsx
 import Link from 'next/link'
 import { prisma } from '@/lib/prisma'

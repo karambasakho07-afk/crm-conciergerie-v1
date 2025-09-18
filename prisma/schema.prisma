@@ -1,13 +1,12 @@
+datasource db {
+  provider  = "postgresql"
+  url       = env("PRISMA_POOL_URL")    // utilise ton pooler
+  directUrl = env("PRISMA_DIRECT_URL")  // URL directe pour les migrations
+}
+
 generator client {
   provider = "prisma-client-js"
 }
-
-datasource db {
-  provider  = "postgresql"
-  url       = env("DATABASE_URL")
-  directUrl = env("DIRECT_URL")
-}
-
 model User {
   id            String     @id @default(cuid())
   role          Role
