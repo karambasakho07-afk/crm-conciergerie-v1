@@ -7,13 +7,11 @@ export const runtime = 'nodejs'
 export async function POST(req: NextRequest) {
   try {
     const form = await req.formData()
-    const from = String(form.get('From') ?? '')
     const text = String(form.get('Body') ?? '')
 
     await prisma.ticket.create({
       data: {
-        sender: from,      // <-- au lieu de `from`
-        message: text,
+        message: text, // ✅ seul champ existant
       },
     })
 
