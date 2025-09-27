@@ -1,12 +1,15 @@
 datasource db {
   provider  = "postgresql"
-  url       = env("PRISMA_POOL_URL")    // utilise ton pooler
-  directUrl = env("PRISMA_DIRECT_URL")  // URL directe pour les migrations
+  url       = "postgresql://postgres.wckakwrblddyqzsdctmw:0769637899Sakho@aws-1-eu-west-3.pooler.supabase.com:6543/postgres?pgbouncer=true&connection_limit=1&sslmode=require"
+  directUrl = "postgresql://postgres:0769637899Sakho@db.wckakwrblddyqzsdctmw.supabase.co:5432/postgres?sslmode=require"
 }
 
 generator client {
   provider = "prisma-client-js"
 }
+
+// ===================== MODELS =====================
+
 model User {
   id            String     @id @default(cuid())
   role          Role
@@ -41,7 +44,7 @@ model Property {
 
 model Ticket {
   id              String       @id @default(cuid())
-  propertyId      String
+  propertyId      String?
   status          TicketStatus @default(OPEN)
   type            TicketType   @default(MSG)
   assigneeId      String?
@@ -49,8 +52,8 @@ model Ticket {
   updatedAt       DateTime     @updatedAt
   firstResponseAt DateTime?
   messages        Message[]
-  assignee        User?        @relation("TicketAssignee", fields: [assigneeId], references: [id])
-  property        Property     @relation(fields: [propertyId], references: [id])
+  assignee        User?        @relation("TicketAssignee", fields: [assigneeId], references: [id], onDelete: SetNull)
+  property        Property?    @relation(fields: [propertyId], references: [id], onDelete: SetNull)
 
   @@index([propertyId, status])
 }
@@ -63,7 +66,7 @@ model Message {
   mediaUrl  String?
   phone     String?
   createdAt DateTime @default(now())
-  ticket    Ticket   @relation(fields: [ticketId], references: [id])
+  ticket    Ticket   @relation(fields: [ticketId], references: [id], onDelete: Cascade)
 
   @@index([ticketId, createdAt])
 }
@@ -78,7 +81,7 @@ model Task {
   createdAt  DateTime   @default(now())
   updatedAt  DateTime   @updatedAt
   hkCheck    HK_Check?
-  assignee   User?      @relation("TaskAssignee", fields: [assigneeId], references: [id])
+  assignee   User?      @relation("TaskAssignee", fields: [assigneeId], references: [id], onDelete: SetNull)
   property   Property   @relation(fields: [propertyId], references: [id])
 
   @@index([propertyId, type, dueAt])
@@ -90,7 +93,7 @@ model HK_Check {
   checklist Json
   photos    Json
   createdAt DateTime @default(now())
-  task      Task     @relation(fields: [taskId], references: [id])
+  task      Task     @relation(fields: [taskId], references: [id], onDelete: Cascade)
 }
 
 model Incident {
@@ -138,6 +141,8 @@ model AuditLog {
   ip        String?
   createdAt DateTime @default(now())
 }
+
+// ===================== ENUMS =====================
 
 enum Role {
   ADMIN
